@@ -48,21 +48,28 @@ export default function Home() {
 
   // Fetch models from API
   useEffect(() => {
-    async function fetchModels() {
-      setLoading(true);
-      try {
-        const query = new URLSearchParams({ search, company, sortBy });
-        const res = await fetch(`/api/models?${query.toString()}`);
-        const data = await res.json();
+  async function fetchModels() {
+    setLoading(true);
+    try {
+      const query = new URLSearchParams({ search, company, sortBy });
+      const res = await fetch(`/api/models?${query.toString()}`);
+      const data = await res.json();
+      
+      if (Array.isArray(data)) {
         setModels(data);
-      } catch (err) {
-        console.error('Failed to load models', err);
-      } finally {
-        setLoading(false);
+      } else {
+        console.error('API error object received:', data);
+        setModels([]);
       }
+    } catch (err) {
+      console.error('Failed to load models', err);
+      setModels([]);
+    } finally {
+      setLoading(false);
     }
-    fetchModels();
-  }, [search, company, sortBy]);
+  }
+  fetchModels();
+}, [search, company, sortBy]);
 
   // Toggle selection for comparison
   const toggleSelect = (slug: string) => {

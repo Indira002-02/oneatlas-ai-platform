@@ -1,48 +1,28 @@
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: Request) {
-  // ... rest of your code
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const slugsParam = searchParams.get('slugs') || '';
 
     if (!slugsParam) {
-      return NextResponse.json({ error: 'Please provide model slugs to compare' }, { status: 400 });
+      return NextResponse.json({ error: 'No model slugs provided' }, { status: 400 });
     }
 
-    const slugs = slugsParam.split(',').map((s) => s.trim());
+    const slugs = slugsParam.split(',').filter(Boolean);
 
     const models = await prisma.model.findMany({
       where: {
         slug: { in: slugs },
       },
-      include: {
-        company: true,
-        providers: {
-          include: {
-            provider: true,
-          },
-        },
-        benchmarkScores: {
-          include: {
-            benchmark: true,
-          },
-        },
-      },
+      include: { company: true },
     });
 
     return NextResponse.json(models);
   } catch (error) {
-    console.error('Comparison API Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch comparison data' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to compare models' }, { status: 500 });
   }
 }
