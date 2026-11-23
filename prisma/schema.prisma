@@ -1,0 +1,85 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Company {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+
+  models Model[]
+}
+
+model Provider {
+  id         String          @id @default(uuid())
+  name       String          @unique
+  slug       String          @unique
+  websiteUrl String?
+
+  modelProviders ModelProvider[]
+}
+
+model Model {
+  id              String           @id @default(uuid())
+  name            String
+  slug            String           @unique
+  companyId       String
+  company         Company          @relation(fields: [companyId], references: [id])
+  type            String           // e.g. LLM, Vision, Reasoning
+  contextWindow   Int              // Tokens (e.g. 128000, 200000)
+  releaseDate     DateTime
+  description     String?
+  isFeatured      Boolean          @default(false)
+
+  // Pricing (USD per 1M tokens)
+  inputPricePerM  Float
+  outputPricePerM Float
+
+  providers       ModelProvider[]
+  benchmarkScores BenchmarkScore[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([contextWindow])
+  @@index([inputPricePerM])
+}
+
+model ModelProvider {
+  id         String   @id @default(uuid())
+  modelId    String
+  providerId String
+  model      Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  latencyMs  Int?
+  throughput Float?
+
+  @@unique([modelId, providerId])
+}
+
+model Benchmark {
+  id       String           @id @default(uuid())
+  name     String           @unique // e.g. MMLU, HumanEval, GSM8K
+  category String           // Reasoning, Coding, Math
+  scores   BenchmarkScore[]
+}
+
+model BenchmarkScore {
+  id          String    @id @default(uuid())
+  modelId     String
+  benchmarkId String
+  score       Float
+  model       Model     @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  benchmark   Benchmark @relation(fields: [benchmarkId], references: [id], onDelete: Cascade)
+
+  @@unique([modelId, benchmarkId])
+}
